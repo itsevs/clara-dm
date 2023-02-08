@@ -29,24 +29,23 @@ os.system("nvidia-smi")
 #drive.mount('/content/drive')
 #dir = '/content/drive/MyDrive/Colab-Notebooks/TFM-HIPE-DHQ/10/'
 
-dir = 'C:/Users/evasa/Downloads/10/' # no se pueden poner backslashes \
-os.listdir(dir)
-docs = [doc for doc in os.listdir(dir) if doc.endswith('iob')]
+class Data():
+    def __init__(self, dir = 'C:/Users/evasa/Downloads/10/'): # no se pueden poner backslashes \
+        self.dir = dir
+        self.docs = [doc for doc in os.listdir(dir) if doc.endswith('iob')]
 
-def asignacion(docs):
-    val = docs[8]
-    test = []
-    test.append(docs[0])
-    test.append(docs[3])
-    test.append(docs[10])
+    def asignacion(self):
+        val = self.docs[8]
+        test = []
+        test.append(self.docs[0])
+        test.append(self.docs[3])
+        test.append(self.docs[10])
 
-    for i in [8, 3, 0]: # tienen que estar en orden inverso
-        docs.pop(i)
-    train = docs
+        for i in [8, 3, 0]: # tienen que estar en orden inverso
+            self.docs.pop(i)
+        train = self.docs
 
-    return train, test, val
-
-train, test, val = asignacion(docs)
+        self.train, self.test, self.val = train, test, val
 
 def encadenar_csvs(split): # encadenar los csv del train/test en uno solo
     columns = ['Token', 'Tag']
