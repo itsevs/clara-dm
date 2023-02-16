@@ -13,13 +13,15 @@ class Tokenizer(Data):
     def __init__(self, dir='10/', model_name = "xlm-roberta-base"):
         super().__init__(dir)
         self.model_name = model_name
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, return_tensors="pt")
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 
     def ejemplo_tokenizado(self, text):
         xlmr_tokens = self.tokenizer(text).tokens()
         return pd.DataFrame([xlmr_tokens], index=["XLM-R"])
     
-    def ver_input_ids(text):
+    def ver_input_ids(self, text):
         input_ids = self.tokenizer.encode(text, return_tensors="pt")
         xlmr_tokens = self.tokenizer(text).tokens()
         return pd.DataFrame([xlmr_tokens, input_ids[0].numpy()], index=["Tokens", "Input IDs"])
@@ -32,10 +34,9 @@ class Tokenizer(Data):
     from transformers.models.roberta.modeling_roberta import RobertaPreTrainedModel
     '''
 
-
     def tokenize_and_align_labels(self, examples):
-        tokenized_inputs = self.tokenizer(examples["tokens"], truncation=True, 
-                                        is_split_into_words=True)
+        tokenized_inputs = self.tokenizer(examples["tokens"], max_length=100, padding='max_length', is_split_into_words=True) # padding='max_lenght', truncation=True, max_length=10, se atasca si meto esto
+                                                                                                                            # con return_tensors="pt" no funciona y parece que con truncation tampoco
         labels = []
         for idx, label in enumerate(examples["ner_tags"]):
             word_ids = tokenized_inputs.word_ids(batch_index=idx)
@@ -52,9 +53,7 @@ class Tokenizer(Data):
         return tokenized_inputs
 
     def encode_dataset(self, corpus):
-        return corpus.map(self.tokenize_and_align_labels, batched=True, 
-                        remove_columns=['ner_tags', 'tokens'])
-
+        return corpus.map(self.tokenize_and_align_labels, batched=True, remove_columns=['ner_tags', 'tokens']) # 
 
 
     def align_predictions(self, predictions, label_ids):
@@ -76,10 +75,8 @@ class Tokenizer(Data):
         return preds_list, labels_list
 
 
-
     def compute_metrics(self, eval_pred):
-        y_pred, y_true = self.align_predictions(eval_pred.predictions, 
-                                        eval_pred.label_ids)
+        y_pred, y_true = self.align_predictions(eval_pred.predictions, eval_pred.label_ids)
         return {"f1": f1_score(y_true, y_pred), "precision": precision_score(y_true, y_pred), "recall": recall_score(y_true, y_pred)}
 
 
@@ -89,7 +86,6 @@ class Tokenizer(Data):
                                                 num_labels = self.tags.num_classes,
                                                 id2label = self.index2tag,
                                                 label2id = self.tag2index)
-
 
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
